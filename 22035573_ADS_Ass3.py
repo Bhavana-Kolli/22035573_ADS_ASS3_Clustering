@@ -71,6 +71,7 @@ def read_df(filename):
     
     return df_years
 
+
 def get_year_data_merge(df1, df2, year1, year2):
     """
     Extracts a single year column from a given dataframe.
@@ -133,6 +134,69 @@ def plot_correlation_heatmaps(df1, df2, title1, title2, size=6):
     plt.show()
 
 
+def fit_clusters(df, n_clusters):
+    """
+    Fits the data to a K-means clustering model 
+    and returns the labels and centroids.
+
+    Args:
+        df (pandas DataFrame): Input data for clustering
+        n_clusters (int): Number of clusters to create
+
+    Returns:
+        labels (array-like): Cluster labels for each data point
+        centroids (array-like): Coordinates of the cluster centroids
+    """
+    kmeans = cluster.KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(df)
+    labels = kmeans.labels_
+    cen = kmeans.cluster_centers_
+    return labels, cen
+
+
+
+def plot_clusters(df, labels, cen, x_label, y_label, title):
+    """
+    Plots a scatter plot of data points colored by clusters 
+    and displays the centroids.
+
+    Args:
+        df (pandas DataFrame): Input data for clustering
+        labels (array-like): Cluster labels for each data point
+        cen (array-like): Coordinates of the cluster centres
+        x_label (str): Column name for x-axis
+        y_label (str): Column name for y-axis
+        title (str): Title of cluster plot
+    """
+    
+    # Extract the estimated cluster centres for x, y axis
+    xcen = cen[:, 0]
+    ycen = cen[:, 1]
+    
+    # Plot
+    plt.figure(figsize=(12.0, 8.0))
+    cm = plt.cm.get_cmap('viridis')
+    scatter = plt.scatter(df[x_label], df[y_label], 30, 
+                          labels, marker="o", cmap=cm)
+    plt.scatter(xcen, ycen, 90, "r", marker="d")
+    
+    # add x, y labels and title
+    plt.xlabel(x_label, fontsize=15)
+    plt.ylabel(y_label, fontsize=15)
+    plt.title(title, fontsize=20)
+    
+    # Add legend for clusters and centroids at top corner
+    plt.legend(handles=scatter.legend_elements()[0] + 
+               [plt.scatter([], [], marker='D', color='r')],
+               labels=['Cluster 0', 'Cluster 1', 'Cluster 2', 'Centroids'],
+               fontsize=15, loc='upper left')
+    
+    # show the plot
+    #plt.show()
+
+
+
+
 # Main Program
 
 
@@ -175,3 +239,44 @@ df_1990_2019 = df_1990_2019.rename(columns={"1990_x":"co2 1990",
 print(df_1990_2019)
 print(df_1990_2019.describe())
 pd.plotting.scatter_matrix(df_1990_2019, figsize=(12, 12), s=5, alpha=0.8)
+
+
+
+# Clustering  co2 emissions--------------------------------------------------
+
+
+# clustering of co2 emissions for 1990 and 2019
+df_co2_1990_2019 = df_1990_2019[["co2 1990", "co2 2019"]].copy()
+print(df_co2_1990_2019)
+
+# normalise
+df_co2_1990_2019, df_min, df_max = ct.scaler(df_co2_1990_2019)
+
+# calculate and print silhouette scores
+print("\nsilhouette scores of co2 emissions for 1990 & 2019")
+print("n    score")
+# Loop over number of clusters
+for n_cluster in range(2, 10):
+    labels, cen = fit_clusters(df_co2_1990_2019, n_cluster)
+    silhouette_score = skmet.silhouette_score(df_co2_1990_2019, labels)
+    print(n_cluster, silhouette_score)
+
+# Fit clusters
+labels, cen = fit_clusters(df_co2_1990_2019, 3)
+
+# Add cluster labels to the data
+df_1990_2019['Cluster'] = labels
+
+# Plot clusters (normalized data)
+plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019", 
+              "3 Clusters of co2 emissions for 1990 & 2019 normalized data")
+
+# And new the plot for the unnormalised data.
+
+# Backscale cluster centers
+cen_backscaled = ct.backscale(cen, df_min, df_max)
+
+# Plot clusters (unnormalized data)
+plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019", 
+              "3 Clusters of co2 emissions for 1990 & 2019 unnormalized data")
+
