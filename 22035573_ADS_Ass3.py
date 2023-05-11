@@ -122,7 +122,7 @@ def plot_correlation_heatmaps(df1, df2, title1, title2, size=6):
 
     # Plot heatmap for df2 with coolwarm color scale
     corr2 = df2.corr()
-    im2 = axes[1].matshow(corr2, cmap='coolwarm')
+    im2 = axes[1].matshow(corr2, cmap='viridis')
     axes[1].set_xticks(range(len(corr2.columns)), fontsize=15)
     axes[1].set_yticks(range(len(corr2.columns)), fontsize=15)
     axes[1].set_xticklabels(corr2.columns, rotation=90, fontsize=15)
@@ -195,88 +195,110 @@ def plot_clusters(df, labels, cen, x_label, y_label, title):
     #plt.show()
 
 
+def analyze_clusters(df):
+    """
+    Analyze clusters based on the provided DataFrame.
+
+    Args:
+        df (DataFrame): Input DataFrame containing the data.
+
+    Returns:
+        None
+    """
+    # Print the dataframe containing values of 1990 and 2019
+    print(df)
+
+    # Print the representative countries from each cluster
+    for cluster_id in range(3):
+        cluster_countries = df[df["Cluster"] == cluster_id]
+        representative_country = cluster_countries.sample(n=1)
+        print(f"Cluster {cluster_id}: Rep Country - {representative_country['Country Name'].values[0]}")
+
+    # Collect mean CO2 emissions for each cluster
+    cluster_means = []
+    for cluster_id in range(3):
+        cluster_countries = df[df["Cluster"] == cluster_id]
+        cluster_mean = cluster_countries[["co2 1990", "co2 2019"]].mean()
+        cluster_means.append(list(cluster_mean))
+
+    # Plot mean CO2 emissions for each cluster
+    plt.figure(figsize=(10, 8))
+    plt.bar(["1990", "2019"], cluster_means[2], 
+            label="Cluster 2", alpha=0.5, color='b')
+    plt.bar(["1990", "2019"], cluster_means[1], 
+            label="Cluster 1", alpha=0.7, color='g')
+    plt.bar(["1990", "2019"], cluster_means[0], 
+            label="Cluster 0", alpha=0.9, color='y')
+
+    plt.xlabel("Year")
+    plt.ylabel("Mean CO2 Emissions")
+    plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for Different Clusters")
+    plt.legend()
+    plt.show()
 
 
-# Main Program
+def linear(x, a, b):
+    """
+    Linear function: f(x) = a + b*x
+    
+    Args:
+        x (float or array-like): Input variable(s)
+        a (float): Intercept parameter
+        b (float): Slope parameter
+        
+    Returns:
+        float or array-like: Value of the linear function at x
+    """
+    
+    f = a + b*x
+    
+    return f
 
 
-# Reading Files-------------------------------------------------------
+def fit_and_plot(df, x_label, y_label):
+    """
+    Perform curve fitting and 
+    plot the best fitting function with confidence range.
 
-# read the data for "CO2 emissions (metric tons per capita)"
-df_co2 = read_df("co2 emissions.csv")
+    Args:
+        df (DataFrame): Input DataFrame containing the data.
+        x_label (str): Label of the x-axis column.
+        y_label (str): Label of the y-axis column.
 
-# read the data for "GDP per capita (current US$)"
-df_gdp = read_df("gdp per capita.csv")
+    Returns:
+        None
+    """
+    
+    # Define x values and observed data (CO2 emissions or GDP)
+    x_values = df[x_label]
+    y_values = df[y_label]
 
+    # Perform curve fitting
+    popt, pcov = opt.curve_fit(linear, x_values, y_values)
 
-# Summary Statistics--------------------------------------------------
+    # Generate predicted values using the fitted parameters
+    df['fit'] = linear(x_values, *popt)
 
+    # Calculate lower and upper confidence ranges using err_ranges
+    lower, upper = err.err_ranges(x_values, linear, popt, 
+                                  np.sqrt(np.diag(pcov)))
 
-# summary statistics for "CO2 emissions(metric tons per capita)" of whole world
-print("\nCO2 emissions summary statistics for whole world:")
-print(df_co2.describe())
+    # Plot the best fitting function and confidence range
+    plt.figure(figsize=(12, 10))
 
-# summary statistics for "GDP per capita (current US$)" of whole world
-print("\nGDP per capita summary statistics for whole world:")
-print(df_gdp.describe())
+    plot_clusters(df, labels, cen_backscaled, x_label, y_label, "fitting")
 
-df_co2_y = df_co2[[1990, 2000, 2010, 2019]]
+    plt.plot(x_values, df['fit'], "k--", label='Best Fit')
 
-df_gdp_y = df_gdp[[1990, 2000, 2010, 2019]]
+    plt.fill_between(x_values, lower, upper, alpha=0.8, 
+                     label='Confidence Range', color='b')
 
-# Plot correlation heatmaps for CO2 and GDP
-plot_correlation_heatmaps(df_co2_y, df_gdp_y, 
-                          "CO2 Emissions", "GDP per capita")
-
-# find data of co2 emissions & gdp per capita for the year 1990 and 2019
-df_1990_2019 = get_year_data_merge(df_co2, df_gdp, 1990, 2019)
-
-# rename columns
-df_1990_2019 = df_1990_2019.rename(columns={"1990_x":"co2 1990", 
-                                            "1990_y":"gdp 1990", 
-                                            "2019_x":"co2 2019", 
-                                            "2019_y":"gdp 2019"})
-print(df_1990_2019)
-print(df_1990_2019.describe())
-pd.plotting.scatter_matrix(df_1990_2019, figsize=(12, 12), s=5, alpha=0.8)
-
-
-
-# Clustering  co2 emissions--------------------------------------------------
-
-
-# clustering of co2 emissions for 1990 and 2019
-df_co2_1990_2019 = df_1990_2019[["co2 1990", "co2 2019"]].copy()
-print(df_co2_1990_2019)
-
-# normalise
-df_co2_1990_2019, df_min, df_max = ct.scaler(df_co2_1990_2019)
-
-# calculate and print silhouette scores
-print("\nsilhouette scores of co2 emissions for 1990 & 2019")
-print("n    score")
-# Loop over number of clusters
-for n_cluster in range(2, 10):
-    labels, cen = fit_clusters(df_co2_1990_2019, n_cluster)
-    silhouette_score = skmet.silhouette_score(df_co2_1990_2019, labels)
-    print(n_cluster, silhouette_score)
-
-# Fit clusters
-labels, cen = fit_clusters(df_co2_1990_2019, 3)
-
-# Add cluster labels to the data
-df_1990_2019['Cluster'] = labels
-
-# Plot clusters (normalized data)
-plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019", 
-              "3 Clusters of co2 emissions for 1990 & 2019 normalized data")
-
-# And new the plot for the unnormalised data.
-
-# Backscale cluster centers
-cen_backscaled = ct.backscale(cen, df_min, df_max)
-
-# Plot clusters (unnormalized data)
-plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019", 
-              "3 Clusters of co2 emissions for 1990 & 2019 unnormalized data")
+    # add x, y labels and title
+    plt.xlabel('Year 1990')
+    plt.ylabel('Year 2019')
+    plt.title(f'Fitting {x_label} vs {y_label}')
+    
+    # plot legend and show the plot
+    plt.legend()
+    plt.show()
 
