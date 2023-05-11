@@ -92,7 +92,7 @@ def plot_correlation_heatmaps(df1, df2, title1, size=6):
     # setting ticks to column names
     plt.xticks(range(len(corr.columns)), corr.columns, rotation=90)
     plt.yticks(range(len(corr.columns)), corr.columns)
-
+    plt.title('Correlation heatmap of CO2 Emissions')
     plt.colorbar()
     plt.show()
   
@@ -201,9 +201,10 @@ def analyze_clusters(df):
     plt.bar(["1990", "2019"], cluster_means[0], 
             label="Cluster 0", alpha=0.5, color='g')
 
-    plt.xlabel("Year")
-    plt.ylabel("Mean CO2 Emissions")
-    plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for Different Clusters")
+    plt.xlabel("Year", fontsize=15)
+    plt.ylabel("Mean CO2 Emissions", fontsize=15)
+    plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for all 3 Clusters", 
+              fontsize=15)
     plt.legend()
     plt.show()
 
@@ -267,7 +268,8 @@ def fit_and_plot(df, x_label, y_label):
     # add x, y labels and title
     plt.xlabel('Year 1990', fontsize=15)
     plt.ylabel('Year 2019', fontsize=15)
-    plt.title(f'Fitting {x_label} vs {y_label}', fontsize=20)
+    plt.title('Best Fit of CO2 emissions in 1990 vs 2019 with confidence range and Predictions', 
+              fontsize=17)
     
     # Generate x values for future years
     x_future = np.array([2029, 2039, 2049])  # Example future years
@@ -310,9 +312,9 @@ print(df_co2.describe())
 
 df_co2_y = df_co2[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
 
-df_co2.head(20).plot.bar(x = "Country Name", 
-                         y = [1990, 1995, 2000, 2005, 2010, 2015, 2019], 
-                         figsize = (25,15), xlabel='Countries', rot=45,
+df_co2.iloc[46:52].plot.bar(x = "Country Name", 
+                         y = [1990, 2000, 2019], 
+                         figsize = (8,8), xlabel='Countries', rot=30,
                          ylabel='co2 emissions', 
                          title='Comaprision of co2 emissions of few countries over the years')
 
@@ -362,7 +364,7 @@ df_1990_2019['Cluster'] = labels
 
 # Plot clusters (normalized data)
 plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019", 
-              "3 Clusters of co2 emissions for 1990 & 2019 normalized data")
+              "3 Clusters of co2 emissions for 1990 vs 2019 normalized data")
 
 # And new the plot for the unnormalised data.
 
@@ -371,7 +373,7 @@ cen_backscaled = ct.backscale(cen, df_min, df_max)
 
 # Plot clusters (unnormalized data)
 plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019", 
-              "3 Clusters of co2 emissions for 1990 & 2019 unnormalized data")
+              "3 Clusters of co2 emissions for 1990 vs 2019 unnormalized data")
 
 
 
