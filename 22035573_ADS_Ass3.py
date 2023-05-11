@@ -175,9 +175,6 @@ def plot_clusters(df, labels, cen, x_label, y_label, title):
                labels=['Cluster 0', 'Cluster 1', 'Cluster 2', 'Centroids'],
                fontsize=15, loc='upper left')
 
-    # save the plot
-    plt.savefig("cluster.png", dpi=300)
-
 
 def analyze_clusters(df):
     """
@@ -308,9 +305,6 @@ def fit_and_plot(df, x_label, y_label):
     plt.fill_between(x_future, lower_pred, upper_pred, alpha=0.3,
                      label='Prediction Uncertainty Range')
 
-    # save the plot
-    plt.savefig("fit.png", dpi=300)
-
     # plot legend and show the plot
     plt.legend()
     plt.show()
@@ -327,7 +321,7 @@ df_co2, df_co2_years = read_df("co2 emissions.csv")
 # Summary Statistics-------------------------------------------------------
 
 
-#summary statistics for "CO2 emissions(metric tons per capita)" of whole world
+# summary statistics for "CO2 emissions(metric tons per capita)" of whole world
 print("\nCO2 emissions summary statistics for whole world:")
 print(df_co2.describe())
 
