@@ -75,35 +75,35 @@ def read_df(filename):
 def plot_corr_heatmap_scatter_matrix(df1, df2, title1, size=6):
     """
     Plots correlation heatmaps for a dataframe and a scatter matrix plot.
-    
+
     Args:
         df1 (pandas DataFrame): Input dataframe for the heatmap
         df2 (pandas DataFrame): Input dataframe for the scatter matrix
         title1 (str): Title for the heatmap
         size (int): The vertical and horizontal size of the plot (in inches)
     """
-    
+
     # Compute the correlation matrix of df1
     corr = df1.corr()
-    
+
     # Plot correlation heatmap
     plt.figure(figsize=(size, size))
     plt.matshow(corr, cmap='coolwarm')
-    
+
     # setting ticks to column names
     plt.xticks(range(len(corr.columns)), corr.columns, rotation=90)
     plt.yticks(range(len(corr.columns)), corr.columns)
-    
+
     # Set the title
     plt.title('Correlation heatmap of CO2 Emissions')
-    
+
     # Add a colorbar to the plot and show the plot
     plt.colorbar()
     plt.show()
 
     # Plot scatter matrix for df2
     pd.plotting.scatter_matrix(df2, figsize=(12, 12), s=5, alpha=0.8)
-    
+
     # show scatter matrix
     plt.tight_layout()
     plt.show()
@@ -122,19 +122,19 @@ def fit_clusters(df, n_clusters):
         labels (array-like): Cluster labels for each data point
         centroids (array-like): Coordinates of the cluster centroids
     """
-    
+
     # Create a K-means clustering model with the specified number of clusters
     kmeans = cluster.KMeans(n_clusters=n_clusters, random_state=42)
-    
+
     # Fit the data to the K-means model
     kmeans.fit(df)
-    
+
     # Get the cluster labels assigned to each data point
     labels = kmeans.labels_
-    
+
     # Get the coordinates of the cluster centroids
     cen = kmeans.cluster_centers_
-    
+
     # Return the cluster labels and centroids
     return labels, cen
 
@@ -174,7 +174,7 @@ def plot_clusters(df, labels, cen, x_label, y_label, title):
                [plt.scatter([], [], marker='D', color='r')],
                labels=['Cluster 0', 'Cluster 1', 'Cluster 2', 'Centroids'],
                fontsize=15, loc='upper left')
-    
+
     # save the plot
     plt.savefig("cluster.png", dpi=300)
 
@@ -215,11 +215,11 @@ def analyze_clusters(df):
             label="Cluster 1", alpha=0.9, color='r')
     plt.bar(["1990", "2019"], cluster_means[0],
             label="Cluster 0", alpha=0.5, color='g')
-    
+
     # add x, y labels
     plt.xlabel("Year", fontsize=15)
     plt.ylabel("Mean CO2 Emissions", fontsize=15)
-    
+
     # add title, legend and show the plot
     plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for all 3 Clusters",
               fontsize=15)
@@ -275,13 +275,13 @@ def fit_and_plot(df, x_label, y_label):
 
     # Plot the best fitting function and confidence range
     plt.figure(figsize=(12, 10))
-    
+
     # Plot the scatter points of the data
     plot_clusters(df, labels, cen_backscaled, x_label, y_label, "fitting")
-    
+
     # Plot the best fit line
     plt.plot(x_values, df['fit'], "k--", label='Best Fit')
-    
+
     # Plot the confidence range
     plt.fill_between(x_values, lower, upper, alpha=0.8,
                      label='Confidence Range', color='b')
@@ -310,19 +310,16 @@ def fit_and_plot(df, x_label, y_label):
 
     # save the plot
     plt.savefig("fit.png", dpi=300)
-    
+
     # plot legend and show the plot
     plt.legend()
     plt.show()
 
 
-
 # Main Program
 
 
-
 # Reading Files ----------------------------------------------------------
-
 # read the data for "CO2 emissions (metric tons per capita)"
 df_co2, df_co2_years = read_df("co2 emissions.csv")
 
@@ -330,7 +327,7 @@ df_co2, df_co2_years = read_df("co2 emissions.csv")
 # Summary Statistics-------------------------------------------------------
 
 
-# summary statistics for "CO2 emissions(metric tons per capita)" of whole world
+#summary statistics for "CO2 emissions(metric tons per capita)" of whole world
 print("\nCO2 emissions summary statistics for whole world:")
 print(df_co2.describe())
 
@@ -366,7 +363,6 @@ print(df_1990_2019.describe())
 
 # Plot correlation heatmaps and scatter matrix for CO2
 plot_corr_heatmap_scatter_matrix(df_co2_y, df_1990_2019, "CO2 Emissions")
-
 
 
 # Clustering  CO2 Emissions--------------------------------------------------
@@ -420,9 +416,7 @@ analyze_clusters(df_1990_2019)
 # Fitting CO2 Emissions -----------------------------------------------------
 
 
-# Perform curve fitting and plot the best fitting function 
+# Perform curve fitting and plot the best fitting function
 # with confidence range and predictions
 fit_and_plot(df_1990_2019, 'co2 1990', 'co2 2019')
-
-
 
