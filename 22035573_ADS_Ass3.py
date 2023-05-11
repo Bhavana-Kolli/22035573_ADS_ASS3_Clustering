@@ -69,69 +69,40 @@ def read_df(filename):
     # resets the index
     df_years = df_years.reset_index()
     
-    return df_years
+    return df_years, df_countries
 
 
-def get_year_data_merge(df1, df2, year1, year2):
+
+def plot_correlation_heatmaps(df1, df2, title1, size=6):
     """
-    Extracts a single year column from a given dataframe.
-    
-    Args:
-        df (pandas.DataFrame): The dataframe to extract data from.
-        year (int): The year to extract data for.
-    
-    Returns:
-        pandas.DataFrame: A dataframe containing the data for the given year.
-    """
-    
-    # drop rows with nan's in the given year
-    df1 = df1.dropna(subset=[year1, year2])
-    df2 = df2.dropna(subset=[year1, year2])
-    
-    df1_year = df1[["Country Name", year1, year2]].copy()
-    df2_year = df2[["Country Name", year1, year2]].copy()
-    
-    df_year = pd.merge(df1_year, df2_year, on="Country Name", how="outer")
-    
-    df_year = df_year.dropna() 
-    
-    return df_year
-
-
-def plot_correlation_heatmaps(df1, df2, title1, title2, size=6):
-    """
-    Plots correlation heatmaps side by side for two dataframes with 
-    two different scales.
+    Plots correlation heatmaps side by side for a dataframe and 
+    a scatter matrix plot.
 
     Args:
-        df1, df2 (pandas DataFrame): Input dataframes
-        title1, title2 (str): Titles for the heatmaps
+        df1 (pandas DataFrame): Input dataframe for the heatmap
+        df2 (pandas DataFrame): Input dataframe for the scatter matrix
+        title1 (str): Title for the heatmap
         size (int): The vertical and horizontal size of the plot (in inches)
     """
-    fig, axes = plt.subplots(1, 2, figsize=(2*size, size))
 
-    # Plot heatmap for df1 with coolwarm color scale
-    corr1 = df1.corr()
-    im1 = axes[0].matshow(corr1, cmap='coolwarm')
-    axes[0].set_xticks(range(len(corr1.columns)), fontsize=15)
-    axes[0].set_yticks(range(len(corr1.columns)), fontsize=15)
-    axes[0].set_xticklabels(corr1.columns, rotation=90, fontsize=15)
-    axes[0].set_yticklabels(corr1.columns, fontsize=15)
-    axes[0].set_title(title1, fontsize=15)
-    fig.colorbar(im1, ax=axes[0])
+    corr = df1.corr()
+    plt.figure(figsize=(size, size))
+    # fig, ax = plt.subplots()
+    plt.matshow(corr, cmap='coolwarm')
+    # setting ticks to column names
+    plt.xticks(range(len(corr.columns)), corr.columns, rotation=90)
+    plt.yticks(range(len(corr.columns)), corr.columns)
 
-    # Plot heatmap for df2 with coolwarm color scale
-    corr2 = df2.corr()
-    im2 = axes[1].matshow(corr2, cmap='viridis')
-    axes[1].set_xticks(range(len(corr2.columns)), fontsize=15)
-    axes[1].set_yticks(range(len(corr2.columns)), fontsize=15)
-    axes[1].set_xticklabels(corr2.columns, rotation=90, fontsize=15)
-    axes[1].set_yticklabels(corr2.columns, fontsize=15)
-    axes[1].set_title(title2, fontsize=15)
-    fig.colorbar(im2, ax=axes[1])
+    plt.colorbar()
+    plt.show()
+  
+    # Plot scatter matrix for df1
+    pd.plotting.scatter_matrix(df2, figsize=(12, 12), s=5, alpha=0.8)
 
     plt.tight_layout()
     plt.show()
+
+
 
 
 def fit_clusters(df, n_clusters):
@@ -226,9 +197,9 @@ def analyze_clusters(df):
     plt.bar(["1990", "2019"], cluster_means[2], 
             label="Cluster 2", alpha=0.5, color='b')
     plt.bar(["1990", "2019"], cluster_means[1], 
-            label="Cluster 1", alpha=0.7, color='g')
+            label="Cluster 1", alpha=0.9, color='r')
     plt.bar(["1990", "2019"], cluster_means[0], 
-            label="Cluster 0", alpha=0.9, color='y')
+            label="Cluster 0", alpha=0.5, color='g')
 
     plt.xlabel("Year")
     plt.ylabel("Mean CO2 Emissions")
@@ -259,7 +230,7 @@ def fit_and_plot(df, x_label, y_label):
     """
     Perform curve fitting and 
     plot the best fitting function with confidence range.
-
+    And predict.
     Args:
         df (DataFrame): Input DataFrame containing the data.
         x_label (str): Label of the x-axis column.
@@ -294,9 +265,9 @@ def fit_and_plot(df, x_label, y_label):
                      label='Confidence Range', color='b')
 
     # add x, y labels and title
-    plt.xlabel('Year 1990')
-    plt.ylabel('Year 2019')
-    plt.title(f'Fitting {x_label} vs {y_label}')
+    plt.xlabel('Year 1990', fontsize=15)
+    plt.ylabel('Year 2019', fontsize=15)
+    plt.title(f'Fitting {x_label} vs {y_label}', fontsize=20)
     
     # Generate x values for future years
     x_future = np.array([2029, 2039, 2049])  # Example future years
@@ -315,6 +286,7 @@ def fit_and_plot(df, x_label, y_label):
                      label='Prediction Uncertainty Range')
 
     # plot legend and show the plot
+    plt.savefig("fit.png", dpi=300)
     plt.legend()
     plt.show()
 
@@ -326,10 +298,7 @@ def fit_and_plot(df, x_label, y_label):
 # Reading Files-------------------------------------------------------
 
 # read the data for "CO2 emissions (metric tons per capita)"
-df_co2 = read_df("co2 emissions.csv")
-
-# read the data for "GDP per capita (current US$)"
-df_gdp = read_df("gdp per capita.csv")
+df_co2, df_co2_years = read_df("co2 emissions.csv")
 
 
 # Summary Statistics--------------------------------------------------
@@ -339,33 +308,34 @@ df_gdp = read_df("gdp per capita.csv")
 print("\nCO2 emissions summary statistics for whole world:")
 print(df_co2.describe())
 
-# summary statistics for "GDP per capita (current US$)" of whole world
-print("\nGDP per capita summary statistics for whole world:")
-print(df_gdp.describe())
-
 df_co2_y = df_co2[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
 
-df_gdp_y = df_gdp[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
+df_co2.head(20).plot.bar(x = "Country Name", 
+                         y = [1990, 1995, 2000, 2005, 2010, 2015, 2019], 
+                         figsize = (25,15), xlabel='Countries', rot=45,
+                         ylabel='co2 emissions', 
+                         title='Comaprision of co2 emissions of few countries over the years')
 
-# Plot correlation heatmaps for CO2 and GDP
-plot_correlation_heatmaps(df_co2_y, df_gdp_y, 
-                          "CO2 Emissions", "GDP per capita")
-
-# find data of co2 emissions & gdp per capita for the year 1990 and 2019
-df_1990_2019 = get_year_data_merge(df_co2, df_gdp, 1990, 2019)
+# drop rows with nan's in the given year
+df_co2 = df_co2.dropna(subset=[1990, 2019])
+ 
+df_1990_2019 = df_co2[["Country Name", 1990, 2019]].copy()
+ 
+df_1990_2019 = df_1990_2019.dropna() 
 
 # rename columns
-df_1990_2019 = df_1990_2019.rename(columns={"1990_x":"co2 1990", 
-                                            "1990_y":"gdp 1990", 
-                                            "2019_x":"co2 2019", 
-                                            "2019_y":"gdp 2019"})
+df_1990_2019 = df_1990_2019.rename(columns={1990:"co2 1990", 2019:"co2 2019"})
+
 print(df_1990_2019)
 print(df_1990_2019.describe())
-pd.plotting.scatter_matrix(df_1990_2019, figsize=(12, 12), s=5, alpha=0.8)
+
+# Plot correlation heatmaps and scatter matrix for CO2 
+plot_correlation_heatmaps(df_co2_y, df_1990_2019, "CO2 Emissions")
 
 
 
 # Clustering  co2 emissions--------------------------------------------------
+
 
 
 # clustering of co2 emissions for 1990 and 2019
@@ -418,44 +388,3 @@ analyze_clusters(df_1990_2019)
 fit_and_plot(df_1990_2019, 'co2 1990', 'co2 2019')
 
 
-
-#  Clustering  gdp per capita----------------------------------------------
-
-
-# clustering of gdp per capita for 1990 and 2019
-df_gdp_1990_2019 = df_1990_2019[["gdp 1990", "gdp 2019"]].copy()
-
-# normalise
-df_gdp_1990_2019, df_min, df_max = ct.scaler(df_gdp_1990_2019)
-
-# calculate and print silhouette scores
-print("\nsilhouette scores of gdp per capita for 1990 & 2019")
-print("n    score")
-# Loop over number of clusters
-for n_cluster in range(2, 10):
-    labels, cen = fit_clusters(df_gdp_1990_2019, n_cluster)
-    silhouette_score = skmet.silhouette_score(df_gdp_1990_2019, labels)
-    print(n_cluster, silhouette_score)
-
-# Fit clusters
-labels, cen = fit_clusters(df_gdp_1990_2019, 3)
-
-# Plot clusters (normalized data)
-plot_clusters(df_gdp_1990_2019, labels, cen, "gdp 1990", "gdp 2019", 
-              "3 Clusters of gdp per capita for 1990 & 2019 normalized data")
-
-# And new the plot for the unnormalised data.
-
-# Backscale cluster centers
-cen_backscaled = ct.backscale(cen, df_min, df_max)
-
-# Plot clusters (unnormalized data)
-plot_clusters(df_1990_2019, labels, cen_backscaled, "gdp 1990", "gdp 2019", 
-              "3 Clusters of gdp per capita for 1990 & 2019 unnormalized data")
-
-
-# Fitting GDP ----------------------------------------------------------
-
-
-
-fit_and_plot(df_1990_2019, 'gdp 1990', 'gdp 2019')
