@@ -32,11 +32,11 @@ def read_df(filename):
     """
     Reads a dataframe in World Bank format from a CSV file.
     Transposes and cleans the dataframe.
-    
+
     Args:
         filename (str): the name of the CSV file to be read
     Returns:
-        df_years(pd.DataFrame): 
+        df_years, df_countries (pd.DataFrame): 
             a dataframe which is cleaned and transposed
     """
 
@@ -46,7 +46,7 @@ def read_df(filename):
     # drops unnecessary columns
     df.drop(['Country Code', 'Indicator Name', 'Indicator Code'], axis=1,
             inplace=True)
-    
+
     # sets the index to the country name
     df = df.set_index('Country Name')
 
@@ -65,44 +65,48 @@ def read_df(filename):
 
     # a dataframe with years as columns
     df_years = df_countries.T
-    
+
     # resets the index
     df_years = df_years.reset_index()
-    
+
     return df_years, df_countries
 
 
-
-def plot_correlation_heatmaps(df1, df2, title1, size=6):
+def plot_corr_heatmap_scatter_matrix(df1, df2, title1, size=6):
     """
-    Plots correlation heatmaps side by side for a dataframe and 
-    a scatter matrix plot.
-
+    Plots correlation heatmaps for a dataframe and a scatter matrix plot.
+    
     Args:
         df1 (pandas DataFrame): Input dataframe for the heatmap
         df2 (pandas DataFrame): Input dataframe for the scatter matrix
         title1 (str): Title for the heatmap
         size (int): The vertical and horizontal size of the plot (in inches)
     """
-
+    
+    # Compute the correlation matrix of df1
     corr = df1.corr()
+    
+    # Plot correlation heatmap
     plt.figure(figsize=(size, size))
-    # fig, ax = plt.subplots()
     plt.matshow(corr, cmap='coolwarm')
+    
     # setting ticks to column names
     plt.xticks(range(len(corr.columns)), corr.columns, rotation=90)
     plt.yticks(range(len(corr.columns)), corr.columns)
+    
+    # Set the title
     plt.title('Correlation heatmap of CO2 Emissions')
+    
+    # Add a colorbar to the plot and show the plot
     plt.colorbar()
     plt.show()
-  
-    # Plot scatter matrix for df1
-    pd.plotting.scatter_matrix(df2, figsize=(12, 12), s=5, alpha=0.8)
 
+    # Plot scatter matrix for df2
+    pd.plotting.scatter_matrix(df2, figsize=(12, 12), s=5, alpha=0.8)
+    
+    # show scatter matrix
     plt.tight_layout()
     plt.show()
-
-
 
 
 def fit_clusters(df, n_clusters):
@@ -118,12 +122,21 @@ def fit_clusters(df, n_clusters):
         labels (array-like): Cluster labels for each data point
         centroids (array-like): Coordinates of the cluster centroids
     """
+    
+    # Create a K-means clustering model with the specified number of clusters
     kmeans = cluster.KMeans(n_clusters=n_clusters, random_state=42)
+    
+    # Fit the data to the K-means model
     kmeans.fit(df)
+    
+    # Get the cluster labels assigned to each data point
     labels = kmeans.labels_
+    
+    # Get the coordinates of the cluster centroids
     cen = kmeans.cluster_centers_
+    
+    # Return the cluster labels and centroids
     return labels, cen
-
 
 
 def plot_clusters(df, labels, cen, x_label, y_label, title):
@@ -139,31 +152,31 @@ def plot_clusters(df, labels, cen, x_label, y_label, title):
         y_label (str): Column name for y-axis
         title (str): Title of cluster plot
     """
-    
+
     # Extract the estimated cluster centres for x, y axis
     xcen = cen[:, 0]
     ycen = cen[:, 1]
-    
-    # Plot
+
+    # Plots the scatter cluster points
     plt.figure(figsize=(12.0, 8.0))
     cm = plt.cm.get_cmap('viridis')
-    scatter = plt.scatter(df[x_label], df[y_label], 30, 
+    scatter = plt.scatter(df[x_label], df[y_label], 30,
                           labels, marker="o", cmap=cm)
     plt.scatter(xcen, ycen, 90, "r", marker="d")
-    
+
     # add x, y labels and title
     plt.xlabel(x_label, fontsize=15)
     plt.ylabel(y_label, fontsize=15)
     plt.title(title, fontsize=20)
-    
+
     # Add legend for clusters and centroids at top corner
-    plt.legend(handles=scatter.legend_elements()[0] + 
+    plt.legend(handles=scatter.legend_elements()[0] +
                [plt.scatter([], [], marker='D', color='r')],
                labels=['Cluster 0', 'Cluster 1', 'Cluster 2', 'Centroids'],
                fontsize=15, loc='upper left')
     
-    # show the plot
-    #plt.show()
+    # save the plot
+    plt.savefig("cluster.png", dpi=300)
 
 
 def analyze_clusters(df):
@@ -176,14 +189,16 @@ def analyze_clusters(df):
     Returns:
         None
     """
-    # Print the dataframe containing values of 1990 and 2019
+    # Print the df containing values of 1990, 2019 and extra clusters column
     print(df)
 
     # Print the representative countries from each cluster
+    print("\n Print the representative countries from each cluster : ")
     for cluster_id in range(3):
         cluster_countries = df[df["Cluster"] == cluster_id]
         representative_country = cluster_countries.sample(n=1)
-        print(f"Cluster {cluster_id}: Rep Country - {representative_country['Country Name'].values[0]}")
+        print(
+            f"Cluster {cluster_id}: Rep Country - {representative_country['Country Name'].values[0]}")
 
     # Collect mean CO2 emissions for each cluster
     cluster_means = []
@@ -194,16 +209,19 @@ def analyze_clusters(df):
 
     # Plot mean CO2 emissions for each cluster
     plt.figure(figsize=(10, 8))
-    plt.bar(["1990", "2019"], cluster_means[2], 
+    plt.bar(["1990", "2019"], cluster_means[2],
             label="Cluster 2", alpha=0.5, color='b')
-    plt.bar(["1990", "2019"], cluster_means[1], 
+    plt.bar(["1990", "2019"], cluster_means[1],
             label="Cluster 1", alpha=0.9, color='r')
-    plt.bar(["1990", "2019"], cluster_means[0], 
+    plt.bar(["1990", "2019"], cluster_means[0],
             label="Cluster 0", alpha=0.5, color='g')
-
+    
+    # add x, y labels
     plt.xlabel("Year", fontsize=15)
     plt.ylabel("Mean CO2 Emissions", fontsize=15)
-    plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for all 3 Clusters", 
+    
+    # add title, legend and show the plot
+    plt.title("Comparison of Mean CO2 Emissions of 1990 & 2019 for all 3 Clusters",
               fontsize=15)
     plt.legend()
     plt.show()
@@ -212,18 +230,18 @@ def analyze_clusters(df):
 def linear(x, a, b):
     """
     Linear function: f(x) = a + b*x
-    
+
     Args:
         x (float or array-like): Input variable(s)
         a (float): Intercept parameter
         b (float): Slope parameter
-        
+
     Returns:
         float or array-like: Value of the linear function at x
     """
-    
+
     f = a + b*x
-    
+
     return f
 
 
@@ -240,8 +258,8 @@ def fit_and_plot(df, x_label, y_label):
     Returns:
         None
     """
-    
-    # Define x values and observed data (CO2 emissions or GDP)
+
+    # Define x values and observed data (CO2 emissions)
     x_values = df[x_label]
     y_values = df[y_label]
 
@@ -252,25 +270,28 @@ def fit_and_plot(df, x_label, y_label):
     df['fit'] = linear(x_values, *popt)
 
     # Calculate lower and upper confidence ranges using err_ranges
-    lower, upper = err.err_ranges(x_values, linear, popt, 
+    lower, upper = err.err_ranges(x_values, linear, popt,
                                   np.sqrt(np.diag(pcov)))
 
     # Plot the best fitting function and confidence range
     plt.figure(figsize=(12, 10))
-
+    
+    # Plot the scatter points of the data
     plot_clusters(df, labels, cen_backscaled, x_label, y_label, "fitting")
-
+    
+    # Plot the best fit line
     plt.plot(x_values, df['fit'], "k--", label='Best Fit')
-
-    plt.fill_between(x_values, lower, upper, alpha=0.8, 
+    
+    # Plot the confidence range
+    plt.fill_between(x_values, lower, upper, alpha=0.8,
                      label='Confidence Range', color='b')
 
     # add x, y labels and title
     plt.xlabel('Year 1990', fontsize=15)
     plt.ylabel('Year 2019', fontsize=15)
-    plt.title('Best Fit of CO2 emissions in 1990 vs 2019 with confidence range and Predictions', 
+    plt.title('Best Fit of CO2 emissions in 1990 vs 2019 with confidence range and Predictions',
               fontsize=17)
-    
+
     # Generate x values for future years
     x_future = np.array([2029, 2039, 2049])  # Example future years
     x_future = x_future-2000
@@ -279,16 +300,18 @@ def fit_and_plot(df, x_label, y_label):
     y_pred = linear(x_future, *popt)
 
     # Calculate lower and upper confidence ranges for the predicted values
-    lower_pred, upper_pred = err.err_ranges(x_future, linear, popt, 
+    lower_pred, upper_pred = err.err_ranges(x_future, linear, popt,
                                             np.sqrt(np.diag(pcov)))
 
     # Plot the predicted values and confidence range
     plt.plot(x_future, y_pred, 'r-', label='Predicted (2029, 2039, 2049)')
-    plt.fill_between(x_future, lower_pred, upper_pred, alpha=0.3, 
+    plt.fill_between(x_future, lower_pred, upper_pred, alpha=0.3,
                      label='Prediction Uncertainty Range')
 
-    # plot legend and show the plot
+    # save the plot
     plt.savefig("fit.png", dpi=300)
+    
+    # plot legend and show the plot
     plt.legend()
     plt.show()
 
@@ -297,55 +320,65 @@ def fit_and_plot(df, x_label, y_label):
 # Main Program
 
 
-# Reading Files-------------------------------------------------------
+
+# Reading Files ----------------------------------------------------------
 
 # read the data for "CO2 emissions (metric tons per capita)"
 df_co2, df_co2_years = read_df("co2 emissions.csv")
 
 
-# Summary Statistics--------------------------------------------------
+# Summary Statistics-------------------------------------------------------
 
 
-#summary statistics for "CO2 emissions(metric tons per capita)" of whole world
+# summary statistics for "CO2 emissions(metric tons per capita)" of whole world
 print("\nCO2 emissions summary statistics for whole world:")
 print(df_co2.describe())
 
+# Select specific years for analysis
 df_co2_y = df_co2[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
 
-df_co2.iloc[46:52].plot.bar(x = "Country Name", 
-                         y = [1990, 2000, 2019], 
-                         figsize = (8,8), xlabel='Countries', rot=30,
-                         ylabel='co2 emissions', 
-                         title='Comaprision of co2 emissions of few countries over the years')
+# Plot bar chart comparing CO2 emissions of selected countries over the years
+df_co2.iloc[46:52].plot.bar(x="Country Name",
+                            y=[1990, 2000, 2019],
+                            figsize=(8, 8), xlabel='Countries', rot=30,
+                            ylabel='co2 emissions',
+                            title='Comaprision of co2 emissions of few countries over the years')
 
-# drop rows with nan's in the given year
+# drop rows with NaN in the given year
 df_co2 = df_co2.dropna(subset=[1990, 2019])
- 
+
+# Create a new DataFrame for the selected years
 df_1990_2019 = df_co2[["Country Name", 1990, 2019]].copy()
- 
-df_1990_2019 = df_1990_2019.dropna() 
+
+# Drop rows with NaN values in the selected years
+df_1990_2019 = df_1990_2019.dropna()
 
 # rename columns
-df_1990_2019 = df_1990_2019.rename(columns={1990:"co2 1990", 2019:"co2 2019"})
+df_1990_2019 = df_1990_2019.rename(
+    columns={1990: "co2 1990", 2019: "co2 2019"})
 
+# Print the new dataframe
 print(df_1990_2019)
+
+# Print summary statistics for the new DataFrame
+print("\nCO2 emissions summary statistics for whole world in 1990 and 2019:")
 print(df_1990_2019.describe())
 
-# Plot correlation heatmaps and scatter matrix for CO2 
-plot_correlation_heatmaps(df_co2_y, df_1990_2019, "CO2 Emissions")
+# Plot correlation heatmaps and scatter matrix for CO2
+plot_corr_heatmap_scatter_matrix(df_co2_y, df_1990_2019, "CO2 Emissions")
 
 
 
-# Clustering  co2 emissions--------------------------------------------------
+# Clustering  CO2 Emissions--------------------------------------------------
 
 
-
-# clustering of co2 emissions for 1990 and 2019
+# Select CO2 emissions data for 1990 and 2019 , print it
 df_co2_1990_2019 = df_1990_2019[["co2 1990", "co2 2019"]].copy()
 print(df_co2_1990_2019)
 
-# normalise
+# Normalise the data
 df_co2_1990_2019, df_min, df_max = ct.scaler(df_co2_1990_2019)
+
 
 # calculate and print silhouette scores
 print("\nsilhouette scores of co2 emissions for 1990 & 2019")
@@ -356,14 +389,15 @@ for n_cluster in range(2, 10):
     silhouette_score = skmet.silhouette_score(df_co2_1990_2019, labels)
     print(n_cluster, silhouette_score)
 
-# Fit clusters
+
+# Fit clusters with the optimal number of clusters (3 in this case)
 labels, cen = fit_clusters(df_co2_1990_2019, 3)
 
 # Add cluster labels to the data
 df_1990_2019['Cluster'] = labels
 
 # Plot clusters (normalized data)
-plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019", 
+plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019",
               "3 Clusters of co2 emissions for 1990 vs 2019 normalized data")
 
 # And new the plot for the unnormalised data.
@@ -372,21 +406,23 @@ plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019",
 cen_backscaled = ct.backscale(cen, df_min, df_max)
 
 # Plot clusters (unnormalized data)
-plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019", 
+plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019",
               "3 Clusters of co2 emissions for 1990 vs 2019 unnormalized data")
 
 
+# Clustering  CO2 Emissions Trends------------------------------------------
 
-# Clustering  CO2 emissions Trends-----------------------------------------
 
-
+# Analyze clusters based on CO2 emissions trends
 analyze_clusters(df_1990_2019)
 
 
+# Fitting CO2 Emissions -----------------------------------------------------
 
-# Fitting CO2 ----------------------------------------------
 
-
+# Perform curve fitting and plot the best fitting function 
+# with confidence range and predictions
 fit_and_plot(df_1990_2019, 'co2 1990', 'co2 2019')
+
 
 
