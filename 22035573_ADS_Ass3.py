@@ -298,7 +298,164 @@ def fit_and_plot(df, x_label, y_label):
     plt.ylabel('Year 2019')
     plt.title(f'Fitting {x_label} vs {y_label}')
     
+    # Generate x values for future years
+    x_future = np.array([2029, 2039, 2049])  # Example future years
+    x_future = x_future-2000
+
+    # Predict corresponding y values for future years using fitted parameters
+    y_pred = linear(x_future, *popt)
+
+    # Calculate lower and upper confidence ranges for the predicted values
+    lower_pred, upper_pred = err.err_ranges(x_future, linear, popt, 
+                                            np.sqrt(np.diag(pcov)))
+
+    # Plot the predicted values and confidence range
+    plt.plot(x_future, y_pred, 'r-', label='Predicted (2029, 2039, 2049)')
+    plt.fill_between(x_future, lower_pred, upper_pred, alpha=0.3, 
+                     label='Prediction Uncertainty Range')
+
     # plot legend and show the plot
     plt.legend()
     plt.show()
 
+
+
+# Main Program
+
+
+# Reading Files-------------------------------------------------------
+
+# read the data for "CO2 emissions (metric tons per capita)"
+df_co2 = read_df("co2 emissions.csv")
+
+# read the data for "GDP per capita (current US$)"
+df_gdp = read_df("gdp per capita.csv")
+
+
+# Summary Statistics--------------------------------------------------
+
+
+#summary statistics for "CO2 emissions(metric tons per capita)" of whole world
+print("\nCO2 emissions summary statistics for whole world:")
+print(df_co2.describe())
+
+# summary statistics for "GDP per capita (current US$)" of whole world
+print("\nGDP per capita summary statistics for whole world:")
+print(df_gdp.describe())
+
+df_co2_y = df_co2[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
+
+df_gdp_y = df_gdp[[1990, 1995, 2000, 2005, 2010, 2015, 2019]]
+
+# Plot correlation heatmaps for CO2 and GDP
+plot_correlation_heatmaps(df_co2_y, df_gdp_y, 
+                          "CO2 Emissions", "GDP per capita")
+
+# find data of co2 emissions & gdp per capita for the year 1990 and 2019
+df_1990_2019 = get_year_data_merge(df_co2, df_gdp, 1990, 2019)
+
+# rename columns
+df_1990_2019 = df_1990_2019.rename(columns={"1990_x":"co2 1990", 
+                                            "1990_y":"gdp 1990", 
+                                            "2019_x":"co2 2019", 
+                                            "2019_y":"gdp 2019"})
+print(df_1990_2019)
+print(df_1990_2019.describe())
+pd.plotting.scatter_matrix(df_1990_2019, figsize=(12, 12), s=5, alpha=0.8)
+
+
+
+# Clustering  co2 emissions--------------------------------------------------
+
+
+# clustering of co2 emissions for 1990 and 2019
+df_co2_1990_2019 = df_1990_2019[["co2 1990", "co2 2019"]].copy()
+print(df_co2_1990_2019)
+
+# normalise
+df_co2_1990_2019, df_min, df_max = ct.scaler(df_co2_1990_2019)
+
+# calculate and print silhouette scores
+print("\nsilhouette scores of co2 emissions for 1990 & 2019")
+print("n    score")
+# Loop over number of clusters
+for n_cluster in range(2, 10):
+    labels, cen = fit_clusters(df_co2_1990_2019, n_cluster)
+    silhouette_score = skmet.silhouette_score(df_co2_1990_2019, labels)
+    print(n_cluster, silhouette_score)
+
+# Fit clusters
+labels, cen = fit_clusters(df_co2_1990_2019, 3)
+
+# Add cluster labels to the data
+df_1990_2019['Cluster'] = labels
+
+# Plot clusters (normalized data)
+plot_clusters(df_co2_1990_2019, labels, cen, "co2 1990", "co2 2019", 
+              "3 Clusters of co2 emissions for 1990 & 2019 normalized data")
+
+# And new the plot for the unnormalised data.
+
+# Backscale cluster centers
+cen_backscaled = ct.backscale(cen, df_min, df_max)
+
+# Plot clusters (unnormalized data)
+plot_clusters(df_1990_2019, labels, cen_backscaled, "co2 1990", "co2 2019", 
+              "3 Clusters of co2 emissions for 1990 & 2019 unnormalized data")
+
+
+
+# Clustering  CO2 emissions Trends-----------------------------------------
+
+
+analyze_clusters(df_1990_2019)
+
+
+
+# Fitting CO2 ----------------------------------------------
+
+
+fit_and_plot(df_1990_2019, 'co2 1990', 'co2 2019')
+
+
+
+#  Clustering  gdp per capita----------------------------------------------
+
+
+# clustering of gdp per capita for 1990 and 2019
+df_gdp_1990_2019 = df_1990_2019[["gdp 1990", "gdp 2019"]].copy()
+
+# normalise
+df_gdp_1990_2019, df_min, df_max = ct.scaler(df_gdp_1990_2019)
+
+# calculate and print silhouette scores
+print("\nsilhouette scores of gdp per capita for 1990 & 2019")
+print("n    score")
+# Loop over number of clusters
+for n_cluster in range(2, 10):
+    labels, cen = fit_clusters(df_gdp_1990_2019, n_cluster)
+    silhouette_score = skmet.silhouette_score(df_gdp_1990_2019, labels)
+    print(n_cluster, silhouette_score)
+
+# Fit clusters
+labels, cen = fit_clusters(df_gdp_1990_2019, 3)
+
+# Plot clusters (normalized data)
+plot_clusters(df_gdp_1990_2019, labels, cen, "gdp 1990", "gdp 2019", 
+              "3 Clusters of gdp per capita for 1990 & 2019 normalized data")
+
+# And new the plot for the unnormalised data.
+
+# Backscale cluster centers
+cen_backscaled = ct.backscale(cen, df_min, df_max)
+
+# Plot clusters (unnormalized data)
+plot_clusters(df_1990_2019, labels, cen_backscaled, "gdp 1990", "gdp 2019", 
+              "3 Clusters of gdp per capita for 1990 & 2019 unnormalized data")
+
+
+# Fitting GDP ----------------------------------------------------------
+
+
+
+fit_and_plot(df_1990_2019, 'gdp 1990', 'gdp 2019')
